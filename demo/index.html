@@ -20,11 +20,18 @@
 				powerState: 'auto',
 				networkState: 'online'
 			});
+			
+			swRegistration.periodicSync.register({
+				tag: 'test2',
+				minPeriod: 15000,
+				powerState: 'auto',
+				networkState: 'online'
+			});
 		});
 		
 		navigator.serviceWorker.ready.then(swRegistration => {
 			swRegistration.periodicSync.register({
-				tag: 'test2',
+				tag: 'test3',
 				minPeriod: 10000,
 				powerState: 'auto',
 				networkState: 'online'
@@ -34,6 +41,13 @@
 		document.addEventListener('sync-test2', function(event)
 		{
 			console.debug('some work in the main thread with test2 periodicSync');
+			
+			navigator.serviceWorker.ready.then(swRegistration => {
+				swRegistration.periodicSync.getRegistration('test2').then(registration => {
+					console.debug('unregisterint the test2 periodic syncronization...');
+					registration.unregister();
+				});
+			});
 		});
 	}
 	else console.error('serwiceWorker not available!');

@@ -22,6 +22,17 @@ self.addEventListener('message', function(event)
 		
 		self.postMessage({type:'register',tag:options.tag,success:true});
 	}
+	
+	if( event.data.method == 'unregister' )
+	{
+		if(typeof intervals[event.data.tag] != 'undefined')
+		{
+			clearInterval(intervals[event.data.tag]);
+			delete intervals[event.data.tag];
+			
+			self.postMessage({type:'unregister',tag:event.data.tag,success:true});
+		}
+	}
 });
 
 self.addEventListener('sync', function(event)

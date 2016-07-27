@@ -15,35 +15,34 @@ if(typeof ServiceWorkerRegistration.prototype.periodicSync == 'undefined')
 		{
 			this.minPossiblePeriod = 250;
 			
-			this._worker = new Worker('PeriodicSyncWorker.js');
+			window.periodicSyncManager = {};
 			
-			let $this = this;
-			this._worker.addEventListener('message', function(event)
-			{
-				//console.debug('PeriodicSyncManager._worker.onMessage(event)', event);
-				
-				if( event.data.type == 'dispatchEvent' )
-					document.dispatchEvent($this._events[event.data.tag]);
-			});
+			window.periodicSyncManager.events = {};
+			window.periodicSyncManager.syncs = {};
 			
-			this._events = {};
-			this._syncs = {};
+			window.periodicSyncManager.worker = new Worker('PeriodicSyncWorker.js');
+			window.periodicSyncManager.worker.addEventListener('message', this._onMessage);
+		}
+		
+		_onMessage( event )
+		{
+			if( event.data.type == 'dispatchEvent' )
+				document.dispatchEvent(window.periodicSyncManager.events[event.data.tag]);
 		}
 		
 		register( registerOptions )
 		{
-			let $this = this;
-			let options = {
-				tag: registerOptions.tag || registerOptions,
-				minPeriod: registerOptions.minPeriod || this.minPossiblePeriod,
-				networkState: registerOptions.networkState || 'online',
-				powerState: registerOptions.powerState || 'auto',
-			};
+			let options = {};
+			
+			options.tag = registerOptions.tag || registerOptions;
+			options.minPeriod = registerOptions.minPeriod || this.minPossiblePeriod;
+			options.networkState = registerOptions.networkState || 'online';
+			options.powerState = registerOptions.powerState || 'auto';
 			
 			return new Promise(function PeriodicSyncManagerRegistration(resolve, reject)
 			{
-				$this._worker.postMessage({method: 'register', options: options});
-				$this._worker.addEventListener('message', function(event)
+				window.periodicSyncManager.worker.postMessage({method: 'register', options: options});
+				window.periodicSyncManager.worker.addEventListener('message', function(event)
 				{
 					if( event.data.type == 'register' )
 					{
@@ -52,10 +51,12 @@ if(typeof ServiceWorkerRegistration.prototype.periodicSync == 'undefined')
 							if( event.data.success == false ) reject( event.data.error );
 							else
 							{
-								$this._syncs[options.tag] = new PeriodicSyncRegistration( options );
-								$this._events[options.tag] = new CustomEvent( 'sync-'+options.tag, $this._syncs[options.tag] );
+								let registration = new PeriodicSyncRegistration( options );
+							
+								window.periodicSyncManager.syncs[options.tag] = registration;
+								window.periodicSyncManager.events[options.tag] = new CustomEvent( 'sync-'+options.tag, registration );
 								
-								resolve( $this._syncs[options.tag] );
+								resolve( window.periodicSyncManager.syncs[options.tag] );
 							}
 							
 							//event.target.removeEventListener(event.type, arguments.callee);
@@ -67,11 +68,10 @@ if(typeof ServiceWorkerRegistration.prototype.periodicSync == 'undefined')
 		
 		_unregister( tagName )
 		{
-			let $this = this;
 			return new Promise(function PeriodicSyncManagerUnRegistration(resolve, reject)
 			{
-				$this._worker.postMessage({method: 'unregister', tag: tagName});
-				$this._worker.addEventListener('message', function(event)
+				window.periodicSyncManager.worker.postMessage({method: 'unregister', tag: tagName});
+				window.periodicSyncManager.worker.addEventListener('message', function(event)
 				{
 					if( event.data.type == 'unregister' )
 					{
@@ -89,28 +89,23 @@ if(typeof ServiceWorkerRegistration.prototype.periodicSync == 'undefined')
 		
 		getRegistration( tagName )
 		{
-			let $this = this;
-			
 			return new Promise(function PeriodicSyncManagerGetRegistration(resolve, reject)
 			{
-				resolve( $this._syncs[tagName] );
+				let registration = window.periodicSyncManager.syncs[tagName];
+				resolve( registration );
 			});
 		}
 		
 		getRegistrations()
 		{
-			let $this = this;
-			
 			return new Promise(function PeriodicSyncManagerGetRegistrations(resolve, reject)
 			{
-				resolve( $this._syncs );
+				resolve( window.periodicSyncManager.syncs );
 			});
 		}
 		
 		permissionState()
 		{
-			let $this = this;
-			
 			return new Promise(function PeriodicSyncManagerPermissionState(resolve, reject)
 			{
 				resolve( false )
@@ -136,10 +131,11 @@ if(typeof ServiceWorkerRegistration.prototype.periodicSync == 'undefined')
 		
 		unregister()
 		{
-			let $this = this;
+			let tagName = this.tag;
+			
 			return navigator.serviceWorker.ready.then(function(swRegistration)
 			{
-				return swRegistration.periodicSync._unregister( $this.tag );
+				return swRegistration.periodicSync._unregister( tagName );
 			});
 		}
 	}

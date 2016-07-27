@@ -18,7 +18,7 @@ if(typeof ServiceWorkerRegistration.prototype.periodicSync == 'undefined')
 			this._syncs = {};
 		}
 		
-		register( registerOptions, syncronizeFunction )
+		register( registerOptions )
 		{
 			let $this = this;
 			let options = {
@@ -28,11 +28,9 @@ if(typeof ServiceWorkerRegistration.prototype.periodicSync == 'undefined')
 				powerState: registerOptions.powerState || 'auto',
 			};
 			
-			if(typeof syncronizeFunction == 'function') syncronizeFunction = syncronizeFunction.toString();
-			
 			return new Promise(function PeriodicSyncManagerRegistration(resolve, reject)
 			{
-				$this._worker.postMessage({method: 'register', options: options, callback: syncronizeFunction});
+				$this._worker.postMessage({method: 'register', options: options});
 				$this._worker.addEventListener('message', function(event)
 				{
 					if( event.data.type == 'register' )

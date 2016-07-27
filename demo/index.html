@@ -1,0 +1,42 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+	<meta charset="UTF-8" />
+	<title> serviceWorker periodicSyncronization demo </title>
+</head>
+<body>
+
+	<h1>serviceWorker.periodicSync demo</h1>
+	<p>See the console for logs!</p>
+
+	<script src="PeriodicSync.js"></script>
+	<script>
+	if('serviceWorker' in navigator)
+	{
+		navigator.serviceWorker.register('sw.js').then(swRegistration => {
+			swRegistration.periodicSync.register({
+				tag: 'test1',
+				minPeriod: 5000,
+				powerState: 'auto',
+				networkState: 'online'
+			});
+		});
+		
+		navigator.serviceWorker.ready.then(swRegistration => {
+			swRegistration.periodicSync.register({
+				tag: 'test2',
+				minPeriod: 10000,
+				powerState: 'auto',
+				networkState: 'online'
+			});
+		});
+		
+		document.addEventListener('sync-test2', function(event)
+		{
+			console.debug('some work in the main thread with test2 periodicSync');
+		});
+	}
+	else console.error('serwiceWorker not available!');
+	</script>
+</body>
+</html>

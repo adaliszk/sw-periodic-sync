@@ -29,7 +29,13 @@ self.addEventListener('sync', function(event)
 	//console.debug('periodicSync::sync:event', event);
 	switch(event.detail.tag)
 	{
-		// @todo
+		case "test1":
+			console.log("test1 fired...");
+			break;
+			
+		case "test2":
+			console.log("test2 fired...");
+			break;
 	}
 });
 

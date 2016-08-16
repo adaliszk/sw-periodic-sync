@@ -6,7 +6,7 @@ if(typeof ServiceWorkerRegistration.prototype.periodicSync == 'undefined')
 	 *
 	 * Using a dedicated worker for the periodic syncronizations
 	 *
-	 * @author: Adam Liszkai <contact@liszkaiadam.hu>
+	 * @author: Ádám Liszkai <contact@liszkaiadam.hu>
 	 * @url: https://developer.mozilla.org/en-US/docs/Web/API/PeriodicSyncManager
 	 */
 	class PeriodicSyncManager
@@ -20,14 +20,61 @@ if(typeof ServiceWorkerRegistration.prototype.periodicSync == 'undefined')
 			window.periodicSyncManager.events = {};
 			window.periodicSyncManager.syncs = {};
 			
-			window.periodicSyncManager.worker = new Worker('PeriodicSyncWorker.js');
-			window.periodicSyncManager.worker.addEventListener('message', this._onMessage);
+			window.periodicSyncManager.worker = new Worker('psWorker.js');
+			window.periodicSyncManager.worker.addEventListener('message', this._onMessage.bind(this));
+			
+			if( typeof navigator.getBattery != 'undefined' )
+			{
+				navigator.getBattery().then(this._bindBatteryEvents.bind(this));
+			}
 		}
 		
 		_onMessage( event )
 		{
+			// Handing sync events and triggering serviceWorker
 			if( event.data.type == 'dispatchEvent' )
+			{
+				// Dispatching Periodic Sync Event
 				document.dispatchEvent(window.periodicSyncManager.events[event.data.tag]);
+				
+				// Triggering serviceWorker background syncronization
+				navigator.serviceWorker.ready.then(function(swRegistration) {
+					return swRegistration.sync.register(event.data.tag);
+				});
+			}
+			
+			// Responding the battery data if available
+			if( event.data.type == 'requestBatteryInformation' )
+			{
+				this._postBatteryInformation();
+			}
+		}
+		
+		_bindBatteryEvents( battery )
+		{
+			battery.addEventListener('chargingchange', this._onBatteryCargingChange.bind(this));
+		}
+		
+		_onBatteryCargingChange( event )
+		{
+			this._postBatteryInformation();
+		}
+		
+		_postBatteryInformation()
+		{
+			if( typeof navigator.getBattery != 'undefined' )
+			{
+				navigator.getBattery().then(function(battery)
+				{
+					let batteryInformation = {};
+						batteryInformation.charging = battery.charging;
+						batteryInformation.chargingTime = battery.chargingTime;
+						batteryInformation.dischargingTime = battery.dischargingTime;
+						batteryInformation.level = battery.level;
+							
+					window.periodicSyncManager.worker.postMessage({battery: batteryInformation});
+				});
+			}
 		}
 		
 		register( registerOptions )
@@ -35,14 +82,17 @@ if(typeof ServiceWorkerRegistration.prototype.periodicSync == 'undefined')
 			let options = {};
 			
 			options.tag = registerOptions.tag || registerOptions;
-			options.minPeriod = registerOptions.minPeriod || this.minPossiblePeriod;
 			options.networkState = registerOptions.networkState || 'online';
 			options.powerState = registerOptions.powerState || 'auto';
+			options.allowOnBattery = registerOptions.allowOnBattery || true,
+			options.idleRequired = options.idleRequired || false,
+			options.maxDelay = registerOptions.maxDelay || Infinity;
+			options.minDelay = registerOptions.minDelay || this.minPossiblePeriod;
+			options.minPeriod = registerOptions.minPeriod || this.minPossiblePeriod;
 			
 			return new Promise(function PeriodicSyncManagerRegistration(resolve, reject)
 			{
-				window.periodicSyncManager.worker.postMessage({method: 'register', options: options});
-				window.periodicSyncManager.worker.addEventListener('message', function(event)
+				function onRegisterMessage( event )
 				{
 					if( event.data.type == 'register' )
 					{
@@ -60,9 +110,13 @@ if(typeof ServiceWorkerRegistration.prototype.periodicSync == 'undefined')
 							}
 							
 							//event.target.removeEventListener(event.type, arguments.callee);
+							window.periodicSyncManager.worker.removeEventListener('message', onRegisterMessage);
 						}
 					}
-				});
+				}
+			
+				window.periodicSyncManager.worker.postMessage({method: 'register', options: options});
+				window.periodicSyncManager.worker.addEventListener('message', onRegisterMessage);
 			});
 		}
 		
@@ -70,8 +124,7 @@ if(typeof ServiceWorkerRegistration.prototype.periodicSync == 'undefined')
 		{
 			return new Promise(function PeriodicSyncManagerUnRegistration(resolve, reject)
 			{
-				window.periodicSyncManager.worker.postMessage({method: 'unregister', tag: tagName});
-				window.periodicSyncManager.worker.addEventListener('message', function(event)
+				function onUnregisterMessage( event )
 				{
 					if( event.data.type == 'unregister' )
 					{
@@ -81,9 +134,13 @@ if(typeof ServiceWorkerRegistration.prototype.periodicSync == 'undefined')
 							else resolve();
 							
 							//event.target.removeEventListener(event.type, PeriodicSyncManagerUnRegistration);
+							window.periodicSyncManager.worker.removeEventListener('message', onUnregisterMessage);
 						}
 					}
-				});
+				}
+			
+				window.periodicSyncManager.worker.postMessage({method: 'unregister', tag: tagName});
+				window.periodicSyncManager.worker.addEventListener('message', onUnregisterMessage);
 			});
 		}
 		
@@ -108,7 +165,7 @@ if(typeof ServiceWorkerRegistration.prototype.periodicSync == 'undefined')
 		{
 			return new Promise(function PeriodicSyncManagerPermissionState(resolve, reject)
 			{
-				resolve( false )
+				resolve( true );
 			});
 		}
 	}
@@ -116,7 +173,7 @@ if(typeof ServiceWorkerRegistration.prototype.periodicSync == 'undefined')
 	/**
 	 * Registration object
 	 *
-	 * @author: Adam Liszkai <contact@liszkaiadam.hu>
+	 * @author: Ádám Liszkai <contact@liszkaiadam.hu>
 	 * @url: https://developer.mozilla.org/en-US/docs/Web/API/PeriodicSyncRegistration
 	 */
 	class PeriodicSyncRegistration

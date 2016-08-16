@@ -13,7 +13,7 @@
 	<script>
 	if('serviceWorker' in navigator)
 	{
-		navigator.serviceWorker.register('sw.js').then(swRegistration => {
+		navigator.serviceWorker.register('serviceWorker.js').then(swRegistration => {
 			swRegistration.periodicSync.register({
 				tag: 'test1',
 				minPeriod: 5000,
@@ -26,6 +26,17 @@
 				minPeriod: 15000,
 				powerState: 'auto',
 				networkState: 'online'
+			});
+			
+			swRegistration.periodicSync.register({
+				tag: 'test4',
+				powerState: 'auto',
+				networkState: 'online',
+				allowOnBattery: true,
+				idleRequired: false,
+				maxDelay: 60000,
+				minDelay: 5000,
+				minPeriod: 20000
 			});
 		});
 		

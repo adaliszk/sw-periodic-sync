@@ -1,4 +1,4 @@
-# serviceWorker Periodic Syncronization
+# serviceWorker Periodic Synchronization
 Just a "polyfill" solution for the serviceWorker periodicSync. This code adding to the ServiceWorkerRegistration object
 prototype the periodicSync method if not available.
 

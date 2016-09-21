@@ -38,17 +38,16 @@ navigator.serviceWorker.ready.then(swRegistration => {
 });
 ```
 
-### Syncronization event
+### Synchronization event
 When the periodicSync is fired the script will trigger a global event which is named after the registered periodic sync
 in this format: ``sync-<tag>``
 ```
-document.addEventListener('sync-something', function(event)
-{
+document.addEventListener('sync-something', function(event) {
 	// do stuff...
 });
 ```
 
-### Unregister a syncronization
+### Unregister a synchronization
 ```
 navigator.serviceWorker.ready.then(swRegistration => {
 	swRegistration.periodicSync.getRegistration('something').then(registration => {
@@ -57,10 +56,10 @@ navigator.serviceWorker.ready.then(swRegistration => {
 });
 ```
 
-### Change a syncronization
-The register will always delete the previnous syncronization settings and use the new one using the tag as a key.
+### Change a synchronization
+The register will always delete the previnous synchronization settings and use the new one using the tag as a key.
 
-## Documentation
+## "Documentation"
 * https://developer.mozilla.org/en-US/docs/Web/API/PeriodicSyncManager
 * https://developer.mozilla.org/en-US/docs/Web/API/PeriodicSyncRegistration
 * https://developer.mozilla.org/en-US/docs/Web/API/PeriodicSyncEvent
